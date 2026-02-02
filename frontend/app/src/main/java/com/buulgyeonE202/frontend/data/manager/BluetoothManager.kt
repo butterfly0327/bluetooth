@@ -25,7 +25,9 @@ class BluetoothManager @Inject constructor() {
     private val _connectionState = MutableStateFlow(false)
     val connectionState = _connectionState.asStateFlow()
 
-    private val TARGET_DEVICE_NAME = "e202-desktop" // 라즈베리파이 호스트네임
+    private val TARGET_DEVICE_NAME = "e202-desktop" // 라즈베리파이 호스트네임 (백업용)
+    private val TARGET_DEVICE_ADDRESS = "2C:CF:67:6A:DD:87" // 라즈베리파이 블루투스 MAC
+    private val TARGET_RFCOMM_CHANNEL = 1
 
     val isConnected: Boolean
         get() = socket?.isConnected == true
@@ -36,15 +38,20 @@ class BluetoothManager @Inject constructor() {
             try {
                 if (bluetoothAdapter == null || !bluetoothAdapter.isEnabled) return@withContext false
 
-                val device = bluetoothAdapter.bondedDevices.find {
-                    it.name?.equals(TARGET_DEVICE_NAME, ignoreCase = true) == true
+                val device = if (TARGET_DEVICE_ADDRESS.isNotBlank()) {
+                    bluetoothAdapter.getRemoteDevice(TARGET_DEVICE_ADDRESS)
+                } else {
+                    bluetoothAdapter.bondedDevices.find {
+                        it.name?.equals(TARGET_DEVICE_NAME, ignoreCase = true) == true
+                    }
                 }
                 if (device == null) return@withContext false
 
-                Log.d("BluetoothManager", "채널 1번 강제 연결 시도")
-                // ★ 리플렉션으로 채널 1번 강제 연결 (필수)
+                bluetoothAdapter.cancelDiscovery()
+                Log.d("BluetoothManager", "RFCOMM 채널 ${TARGET_RFCOMM_CHANNEL} 연결 시도")
+                // ★ 리플렉션으로 채널 강제 연결 (RFCOMM)
                 val method = device.javaClass.getMethod("createInsecureRfcommSocket", Int::class.javaPrimitiveType)
-                socket = method.invoke(device, 1) as BluetoothSocket
+                socket = method.invoke(device, TARGET_RFCOMM_CHANNEL) as BluetoothSocket
 
                 socket?.connect()
                 outputStream = socket?.outputStream

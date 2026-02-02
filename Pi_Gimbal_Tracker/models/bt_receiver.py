@@ -4,6 +4,8 @@ import socket
 import threading
 import time
 
+from config import BT_BIND_ADDRESS, BT_PORT
+
 class BluetoothReceiver:
     def __init__(self):
 
@@ -28,9 +30,10 @@ class BluetoothReceiver:
         self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         
         try:
-            self.server_sock.bind(("2C:CF:67:6A:DD:87", 1))
+            bind_address = BT_BIND_ADDRESS or ""
+            self.server_sock.bind((bind_address, BT_PORT))
             self.server_sock.listen(1)
-            print("[BT] RFCOMM 채널 1 대기 중... (Ready)")
+            print(f"[BT] RFCOMM 채널 {BT_PORT} 대기 중... (Ready)")
         except Exception as e:
             print(f"[BT] 바인딩 에러: {e}")
             return
