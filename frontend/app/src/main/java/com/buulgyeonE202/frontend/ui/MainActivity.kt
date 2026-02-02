@@ -27,6 +27,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.navArgument
 
 import com.buulgyeonE202.frontend.data.manager.BluetoothManager
@@ -86,6 +87,13 @@ class MainActivity : ComponentActivity() {
     ) { permissions ->
         if (permissions.values.all { it }) {
             try { hidControlManager.initialize() } catch (e: Exception) { e.printStackTrace() }
+            attemptPiAutoConnect()
+        }
+    }
+
+    private fun attemptPiAutoConnect() {
+        lifecycleScope.launch {
+            bluetoothManager.connectToPi()
         }
     }
 
@@ -93,6 +101,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestPermissionLauncher.launch(bluetoothPermissions)
         try { hidControlManager.initialize() } catch (e: Exception) { e.printStackTrace() }
+        val hasBluetoothPermissions = bluetoothPermissions.all {
+            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+        }
+        if (hasBluetoothPermissions) {
+            attemptPiAutoConnect()
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
